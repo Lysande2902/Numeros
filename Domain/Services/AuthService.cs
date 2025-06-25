@@ -1,7 +1,7 @@
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ParImparAPI.Domain.Services
 {
@@ -25,7 +25,11 @@ namespace ParImparAPI.Domain.Services
 
         public string GenerateJwtToken(string username)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "YourSuperSecretKey12345678901234567890"));
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    _configuration["Jwt:Key"] ?? "YourSuperSecretKey12345678901234567890"
+                )
+            );
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
@@ -46,4 +50,4 @@ namespace ParImparAPI.Domain.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
-} 
+}
