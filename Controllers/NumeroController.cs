@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ParImparAPI.Domain.Data;
 using ParImparAPI.Domain.Entities;
@@ -7,6 +8,7 @@ namespace ParImparAPI.Controllers.V1
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Authorize] // Requerir autenticación para todos los endpoints
     public class NumeroController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -18,9 +20,45 @@ namespace ParImparAPI.Controllers.V1
 
         // GET: api/v1/Numero
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Numero>>> Get()
+        public async Task<ActionResult<PaginatedResponse<Numero>>> Get(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            return await _context.Numeros.ToListAsync();
+            // Validar parámetros
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+            // Obtener el total de registros
+            var totalRecords = await _context.Numeros.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+            // Calcular el offset
+            var offset = (page - 1) * pageSize;
+
+            // Obtener los registros de la página actual
+            var numeros = await _context.Numeros
+                .Skip(offset)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Crear la respuesta paginada
+            var response = new PaginatedResponse<Numero>
+            {
+                Data = numeros,
+                Pagination = new PaginationInfo
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalRecords = totalRecords,
+                    TotalPages = totalPages,
+                    HasNextPage = page < totalPages,
+                    HasPreviousPage = page > 1,
+                    NextPage = page < totalPages ? page + 1 : null,
+                    PreviousPage = page > 1 ? page - 1 : null
+                }
+            };
+
+            return Ok(response);
         }
 
         // GET: api/v1/Numero/5
@@ -91,5 +129,24 @@ namespace ParImparAPI.Controllers.V1
 
             return NoContent();
         }
+    }
+
+    // Clases para la paginación
+    public class PaginatedResponse<T>
+    {
+        public List<T> Data { get; set; } = new List<T>();
+        public PaginationInfo Pagination { get; set; } = new PaginationInfo();
+    }
+
+    public class PaginationInfo
+    {
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public int TotalRecords { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public int? NextPage { get; set; }
+        public int? PreviousPage { get; set; }
     }
 }
