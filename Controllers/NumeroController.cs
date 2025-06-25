@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParImparAPI.Domain.Data;
 using ParImparAPI.Domain.Entities;
@@ -21,12 +21,15 @@ namespace ParImparAPI.Controllers.V1
         // GET: api/v1/Numero
         [HttpGet]
         public async Task<ActionResult<PaginatedResponse<Numero>>> Get(
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10
+        )
         {
             // Validar parámetros
-            if (page < 1) page = 1;
-            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            if (page < 1)
+                page = 1;
+            if (pageSize < 1 || pageSize > 100)
+                pageSize = 10;
 
             // Obtener el total de registros
             var totalRecords = await _context.Numeros.CountAsync();
@@ -36,10 +39,7 @@ namespace ParImparAPI.Controllers.V1
             var offset = (page - 1) * pageSize;
 
             // Obtener los registros de la página actual
-            var numeros = await _context.Numeros
-                .Skip(offset)
-                .Take(pageSize)
-                .ToListAsync();
+            var numeros = await _context.Numeros.Skip(offset).Take(pageSize).ToListAsync();
 
             // Crear la respuesta paginada
             var response = new PaginatedResponse<Numero>
@@ -54,8 +54,8 @@ namespace ParImparAPI.Controllers.V1
                     HasNextPage = page < totalPages,
                     HasPreviousPage = page > 1,
                     NextPage = page < totalPages ? page + 1 : null,
-                    PreviousPage = page > 1 ? page - 1 : null
-                }
+                    PreviousPage = page > 1 ? page - 1 : null,
+                },
             };
 
             return Ok(response);
@@ -77,6 +77,12 @@ namespace ParImparAPI.Controllers.V1
         [HttpPost]
         public async Task<ActionResult<Numero>> Post(Numero numero)
         {
+            // Validar que el número no sea negativo
+            if (numero.Value < 0)
+            {
+                return BadRequest(new { message = "No se permiten números negativos." });
+            }
+
             // Calcular la paridad automáticamente
             numero.Paridad = (numero.Value % 2 == 0) ? "Par" : "Impar";
 
@@ -94,6 +100,12 @@ namespace ParImparAPI.Controllers.V1
         {
             if (id != numero.Id)
                 return BadRequest();
+
+            // Validar que el número no sea negativo
+            if (numero.Value < 0)
+            {
+                return BadRequest(new { message = "No se permiten números negativos." });
+            }
 
             // Calcular la paridad nuevamente
             numero.Paridad = (numero.Value % 2 == 0) ? "Par" : "Impar";
